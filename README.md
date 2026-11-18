@@ -1,12 +1,14 @@
-# Creational Design Patterns in Java: Builder, Factory, Singleton
+# Creational Design Patterns in Java: Builder, Factory, Singleton, Abstract Factory, Prototype
 
-A concise reference for three creational design patterns: what each one is, what problem it solves, and the essential parts needed to implement it.
+A concise reference for five creational design patterns: what each one is, what problem it solves, and the essential parts needed to implement it.
 
 ## Contents
 
 - [1. Builder Pattern](#1-builder-pattern)
 - [2. Factory Pattern](#2-factory-pattern)
 - [3. Singleton Pattern](#3-singleton-pattern)
+- [4. Abstract Factory Pattern](#4-abstract-factory-pattern)
+- [5. Prototype Pattern](#5-prototype-pattern)
 - [Quick Comparison](#quick-comparison)
 
 ---
@@ -146,6 +148,91 @@ Beans are singleton-scoped by default, so you rarely hand-write the pattern. Spr
 
 ---
 
+## 4. Abstract Factory Pattern
+
+### Definition
+
+Abstract Factory provides an interface for creating **families of related objects** without specifying their concrete classes. Where a Factory creates one kind of product, an Abstract Factory creates a whole set of products that are designed to work together.
+
+### Problem it solves
+
+- An application needs several related objects (for example a button, a checkbox and a text field) that must all belong to the same family, such as a Windows theme or a Dark theme.
+- Mixing products from different families (a Windows button with a Mac checkbox) causes inconsistent or broken behaviour.
+- Client code should not need to know which family it is using, and switching families should not require changing that code.
+
+### Necessary parts to implement
+
+1. **Abstract product interfaces.** One interface per kind of product in the family (for example `Button`, `Checkbox`).
+2. **Concrete products.** One implementation of each product interface per family (for example `WindowsButton`, `MacButton`).
+3. **Abstract factory interface.** It declares one creation method per product type, each returning the abstract product interface.
+4. **Concrete factories.** One per family. Each implements the abstract factory and returns only products from its own family, which guarantees consistency.
+5. **Client code that depends only on the interfaces.** It receives an abstract factory (usually via constructor injection) and never references a concrete class.
+6. **A place to choose the concrete factory.** This is typically done once at startup based on configuration, environment or user settings.
+
+### Use when
+
+- Products naturally come in families that must be used together.
+- You need to switch an entire family (theme, database vendor, cloud provider, OS) without touching client code.
+- You want to enforce that products from different families are never mixed.
+
+### Pros and cons
+
+| Pros | Cons |
+|---|---|
+| Guarantees products from one family are compatible | Many interfaces and classes |
+| Client is decoupled from concrete classes | Adding a new product type means changing the abstract factory and every concrete factory |
+| Swapping a whole family is a one-line change | Overkill if there is only one family |
+
+### Factory vs. Abstract Factory
+
+| | Factory | Abstract Factory |
+|---|---|---|
+| Creates | One product type | A family of related product types |
+| Structure | One factory method or class | A factory interface with several creation methods |
+| Focus | Which class to instantiate | Which family of classes to use together |
+
+---
+
+## 5. Prototype Pattern
+
+### Definition
+
+Prototype creates new objects by **copying (cloning) an existing instance**, called the prototype, instead of constructing them from scratch.
+
+### Problem it solves
+
+- Creating an object is expensive (heavy computation, database or network calls, complex setup) and you need many similar copies.
+- You want a new object that starts with the same state as an existing one, then modify only a few fields.
+- Client code should be able to copy an object without knowing its concrete class, for example when it only holds a reference to an interface.
+
+### Necessary parts to implement
+
+1. **Prototype interface or abstract class.** It declares a copy method (such as `copy()` or `clone()`).
+2. **Concrete prototype classes.** Each one implements the copy method and returns a new instance of itself with the same field values.
+3. **A decision on shallow vs. deep copy.**
+   - Shallow copy duplicates the object but shares references to nested objects.
+   - Deep copy also duplicates nested mutable objects, so the copy is fully independent. This is required whenever the object holds mutable collections or other objects.
+4. **A copy constructor (recommended) or `Cloneable` with `clone()` override.** Java's `Cloneable` is error-prone (it is shallow by default, bypasses constructors and has an awkward contract), so a copy constructor or explicit copy method is generally preferred.
+5. **Optional prototype registry.** A map of named, pre-configured prototypes that clients can look up and copy.
+6. **Client code that calls the copy method.** It never uses `new` on the concrete class.
+
+### Use when
+
+- Object creation is costly and copying is cheaper.
+- You need many objects that differ only slightly from a template.
+- The concrete type is not known at compile time but the object can still be copied.
+
+### Pros and cons
+
+| Pros | Cons |
+|---|---|
+| Faster than rebuilding complex objects | Deep copying objects with circular references is tricky |
+| Hides concrete classes from the client | Every class must implement its own copy logic |
+| Avoids large hierarchies of subclasses or factories | Shallow copies can cause shared-state bugs |
+| Easy to create pre-configured templates | `Cloneable` / `clone()` has known pitfalls in Java |
+
+---
+
 ## Quick Comparison
 
 | Pattern | Problem it solves | Key idea | Must-have element | Spring Boot equivalent |
@@ -153,3 +240,5 @@ Beans are singleton-scoped by default, so you rarely hand-write the pattern. Spr
 | Builder | Many or optional constructor parameters | Step-by-step fluent construction, then `build()` | Private product constructor plus static nested Builder | Lombok `@Builder` |
 | Factory | Choosing which concrete class to create | Central creation behind an interface | Common interface plus a factory returning it | Injecting a map of beans |
 | Singleton | Exactly one shared instance | Controlled access to one object | Private constructor plus static accessor | Default bean scope |
+| Abstract Factory | Creating families of related objects that must match | One factory per family, each producing a full set | Abstract factory interface plus one concrete factory per family | Profile- or configuration-based bean selection |
+| Prototype | Costly or repetitive object creation | Copy an existing object instead of building a new one | Copy method plus a deliberate deep or shallow copy | Prototype-scoped beans |
